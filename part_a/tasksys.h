@@ -71,6 +71,8 @@ class TaskSystemParallelThreadPoolSpinning: public ITaskSystem {
         std::mutex mtx_cout;
         std::atomic_bool done;
         void worker_thread();
+        void shutdown_threads();
+        void start_threads();
         template <typename FunctionType>
         void submit(FunctionType F);
         int threads_count;
@@ -96,9 +98,14 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         void sync();
     private:
         void worker(IRunnable* runnable, int idx, int num_total_tasks);
-        std::mutex mut;
+        void worker_thread();
+        std::vector<std::thread> threads;
+        std::atomic_int finished_tasks;
+        int tot_tasks;
+        std::queue<std::function<void()>> task_queue;
+        std::mutex mtx_queue;
+        std::atomic_bool done;
         std::condition_variable cv;
-        int n;
 };
 
 #endif

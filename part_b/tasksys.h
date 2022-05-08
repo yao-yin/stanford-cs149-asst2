@@ -2,6 +2,17 @@
 #define _TASKSYS_H
 
 #include "itasksys.h"
+#include "assert.h"
+
+#include <iostream>
+#include <functional>
+#include <vector>
+#include <mutex>
+#include <queue>
+#include <unordered_set>
+#include <atomic>
+#include <thread>
+#include <condition_variable>
 
 /*
  * TaskSystemSerial: This class is the student's implementation of a
@@ -68,6 +79,43 @@ class TaskSystemParallelThreadPoolSleeping: public ITaskSystem {
         TaskID runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
                                 const std::vector<TaskID>& deps);
         void sync();
+    private:
+        std::atomic_int call_counter;        
+        
+        struct Task {
+            std::function<void()> func;
+            TaskID taskId;
+        };
+
+        struct BulkTask {
+            IRunnable* runnable;
+            int num_total_tasks;
+        };
+
+        std::vector<BulkTask> all_tasks;
+        std::mutex mtx_all_tasks;
+
+        std::queue<Task> ready_task_queue;
+        std::mutex mtx_ready_task_queue;
+        
+        std::vector<int> remain_tasks;
+        std::mutex mtx_remain_tasks;
+
+        std::vector<std::vector<TaskID>> dep_out;
+        std::mutex mtx_dep_out;
+
+        std::vector<TaskID> dep_in_degree;
+        std::mutex mtx_dep_in_degree;
+
+        void worker_thread();
+        void add_to_queue(TaskID task_id);
+
+        std::atomic_bool done;
+        std::atomic_int remain_taskbulks_num;
+        std::condition_variable cond;
+
+        std::vector<std::thread> threads;
+
 };
 
 #endif
